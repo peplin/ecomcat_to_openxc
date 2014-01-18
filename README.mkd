@@ -1,0 +1,86 @@
+ECOMCat to OpenXC Vehicle Trace Converter
+=========================================
+
+## About
+
+Security researchers Charlie Miller (@0xcharlie) and Chris Valasek
+(@nudehaberdasher) [published their
+work](http://blog.ioactive.com/2013/08/car-hacking-content.html) on car hacking
+in 2013, including a [white paper (PDF)](http://illmatics.com/car_hacking.pdf)
+and perhaps more importantly, the [code and CAN message
+traces](http://illmatics.com/content.zip) they used for the hacks.
+
+Their work uses a text based format to log individual CAN messages, and they
+built a C library, ECOMCat, to send and receive those CAN messages using the
+[ECOM Cable](http://www.cancapture.com/ecom.html) to connect to the bus.
+
+This repository contains a simple Python script to convert the ECOMCat log files
+to the raw CAN message trace format used with the [OpenXC
+Platform](http://openxcplatform.com/) tools. The OpenXC trace format is
+understood by the open source [vehicle interface
+firmware](http://vi-firmware.openxcplatform.com/en/latest/), which runs on a
+number of different [low-cost hardware
+devices](http://openxcplatform.com/vehicle-interface/hardware.html). You can
+currently use the raw trace format to send and receive CAN messages using the
+[OpenXC Python library and command line
+utilities](http://python.openxcplatform.com/en/latest/).
+
+(The raw message format isn't yet supported by the [OpenXC Android
+library](https://github.com/openxc/openxc-android), but that wouldn't be too
+much to add - car hacking from your phone!)
+
+## Usage
+
+Assuming that you have a trace file in the ECOMCat format at `example.dat`, run
+this to convert the trace to the OpenXC format and save it in
+`example-openxc.json`:
+
+    $ ./ecomcat_to_openxc example.dat > example-openxc.json
+
+The script just outputs the OpenXC format on stdout, so you can redirect it to
+another script if you'd like (e.g. you could pipe it to `openxc-control` to both
+convert and send it to the bus in real time).
+
+The script also accepts input from stdin:
+
+    $ ./ecomcat_to_openxc < example.dat > example-openxc.json
+
+### ECOMCat Trace Format
+
+Quoting [Charlie and Chris' paper](http://blog.ioactive.com/2013/08/car-hacking-content.html):
+
+"An example of such a packet with identifier 03B1 from the Ford Escape MS bus looks
+like:
+
+    IDH: 03, IDL: B1, Len: 08, Data: 80 00 00 00 00 00 00 00
+
+"An example of a packet transmitted by the Toyota with the identifier 00B6, broadcasting
+the current speed, with a checksum at the last data byte looks like:
+
+    IDH: 00, IDL: B6, Len: 04, Data: 33 A8 00 95
+
+"Note: The above format was created by the authors of this paper to be human readable
+and also consumable by the API we developed. The CAN ID of 11 bit frames may be
+broken up into high and low (IDH and IDL) or combined into a single ID. For example,
+the above example has an IDH of 03 and an IDL of B1. Therefore it has a CAN ID of
+03B1. Each format will be used interchangeably."
+
+### OpenXC Raw CAN Message Trace Format
+
+This is officially defined in the
+[openxc-message-format](https://github.com/openxc/openxc-message-format)
+repo, but the long and short of it is that raw CAN messages are encoded as JSON:
+
+    {"id": 100, "length": 8, "data": "0xa100000000005d30"}
+
+## Known Limitations
+
+* Corrupted lines in source file (e.g. missing attributes) will be skipped
+  silently.
+
+License
+=======
+
+Copyright (c) 2014 Christopher Peplin
+
+Licensed under the BSD license.
